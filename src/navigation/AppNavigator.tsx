@@ -9,6 +9,7 @@ import { CreateCaseScreen } from '../screens/cases/CreateCaseScreen';
 import { CaseDetailScreen } from '../screens/cases/CaseDetailScreen';
 import { UsersListScreen } from '../screens/users/UsersListScreen';
 import { CreateUserScreen } from '../screens/users/CreateUserScreen';
+import { EditUserScreen } from '../screens/users/EditUserScreen';
 import { UploadDocumentScreen } from '../screens/documents/UploadDocumentScreen';
 import { SettingsScreen } from '../components/SettingsScreen';
 import { useTheme } from '../hooks/useTheme';
@@ -47,7 +48,7 @@ const UsersStack = () => {
     >
       <Stack.Screen name="UsersList" component={UsersListScreen} options={{ title: 'Users' }} />
       <Stack.Screen name="CreateUser" component={CreateUserScreen} options={{ title: 'Create User' }} />
-      <Stack.Screen name="EditUser" component={CreateUserScreen} options={{ title: 'Edit User' }} />
+      <Stack.Screen name="EditUser" component={EditUserScreen} options={{ title: 'Edit User' }} />
     </Stack.Navigator>
   );
 };

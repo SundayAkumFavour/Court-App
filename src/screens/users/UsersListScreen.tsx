@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Card, Searchbar, FAB, Chip, Menu } from 'react-native-paper';
+import { Searchbar, FAB, Chip, Menu } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { fetchUsers } from '../../store/slices/usersSlice';
 import { useTheme } from '../../hooks/useTheme';
@@ -11,6 +11,10 @@ import { ErrorState } from '../../components/ErrorState';
 import { User } from '../../types';
 import { canCreateUsers } from '../../utils/permissions';
 import { useNavigation } from '@react-navigation/native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logger from '../../utils/logger';
+
+const LOG_SOURCE = 'UsersListScreen';
 
 export const UsersListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,6 +26,7 @@ export const UsersListScreen: React.FC = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
+    Logger.info(LOG_SOURCE, 'Users list screen mounted');
     dispatch(fetchUsers());
   }, [dispatch]);
 
@@ -34,88 +39,121 @@ export const UsersListScreen: React.FC = () => {
   const canCreate = canCreateUsers(user?.role || null);
 
   const renderUser = ({ item }: { item: User }) => (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Card.Content>
-        <View style={styles.userHeader}>
-          <View style={styles.userInfo}>
-            <Typography variant="body">{item.email}</Typography>
-            <View style={styles.roleRow}>
-              <Chip
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor:
-                      item.role === 'super_admin'
-                        ? theme.colors.error
-                        : item.role === 'admin'
-                        ? theme.colors.primary
-                        : theme.colors.secondary,
-                  },
-                ]}
-                textStyle={{ color: '#fff', fontSize: 10 }}
-              >
-                {item.role}
-              </Chip>
-              <Chip
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor:
-                      item.status === 'active'
-                        ? theme.colors.success
-                        : item.status === 'suspended'
-                        ? theme.colors.warning
-                        : theme.colors.error,
-                  },
-                ]}
-                textStyle={{ color: '#fff', fontSize: 10 }}
-              >
-                {item.status}
-              </Chip>
-            </View>
+    <View style={[styles.userCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+      <View style={styles.userHeader}>
+        <View style={styles.userInfo}>
+          <Typography variant="body" style={{ color: theme.colors.text, fontWeight: '600' }}>
+            {item.email}
+          </Typography>
+          <View style={styles.roleRow}>
+            <Chip
+              mode="flat"
+              style={[
+                styles.chip,
+                {
+                  backgroundColor:
+                    item.role === 'super_admin'
+                      ? theme.colors.error + '20'
+                      : item.role === 'admin'
+                      ? theme.colors.primary + '20'
+                      : theme.colors.secondary + '20',
+                },
+              ]}
+              textStyle={{
+                color:
+                  item.role === 'super_admin'
+                    ? theme.colors.error
+                    : item.role === 'admin'
+                    ? theme.colors.primary
+                    : theme.colors.secondary,
+                fontSize: 11,
+                fontWeight: '600',
+              }}
+            >
+              {item.role.replace('_', ' ')}
+            </Chip>
+            <Chip
+              mode="flat"
+              style={[
+                styles.chip,
+                {
+                  backgroundColor:
+                    item.status === 'active'
+                      ? theme.colors.success + '20'
+                      : item.status === 'suspended'
+                      ? theme.colors.warning + '20'
+                      : theme.colors.error + '20',
+                },
+              ]}
+              textStyle={{
+                color:
+                  item.status === 'active'
+                    ? theme.colors.success
+                    : item.status === 'suspended'
+                    ? theme.colors.warning
+                    : theme.colors.error,
+                fontSize: 11,
+                fontWeight: '600',
+              }}
+            >
+              {item.status}
+            </Chip>
           </View>
-          <Menu
-            visible={menuVisible === item.id}
-            onDismiss={() => setMenuVisible(null)}
-            anchor={
-              <TouchableOpacity onPress={() => setMenuVisible(item.id)}>
-                <Typography>⋮</Typography>
-              </TouchableOpacity>
-            }
-          >
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(null);
-                navigation.navigate('EditUser' as never, { userId: item.id } as never);
-              }}
-              title="Edit"
-            />
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(null);
-                // Handle suspend/activate
-              }}
-              title={item.status === 'active' ? 'Suspend' : 'Activate'}
-            />
-            <Menu.Item
-              onPress={() => {
-                setMenuVisible(null);
-                // Handle delete
-              }}
-              title="Delete"
-              titleStyle={{ color: theme.colors.error }}
-            />
-          </Menu>
         </View>
-      </Card.Content>
-    </Card>
+        <Menu
+          visible={menuVisible === item.id}
+          onDismiss={() => setMenuVisible(null)}
+          anchor={
+            <TouchableOpacity
+              onPress={() => setMenuVisible(item.id)}
+              style={styles.menuButton}
+            >
+              <MaterialCommunityIcons
+                name="dots-vertical"
+                size={24}
+                color={theme.colors.textSecondary}
+              />
+            </TouchableOpacity>
+          }
+        >
+          <Menu.Item
+            onPress={() => {
+              Logger.debug(LOG_SOURCE, 'Editing user', { userId: item.id });
+              setMenuVisible(null);
+              navigation.navigate('EditUser' as never, { userId: item.id } as never);
+            }}
+            title="Edit"
+          />
+          <Menu.Item
+            onPress={() => {
+              Logger.debug(LOG_SOURCE, 'Toggling user status', { userId: item.id, currentStatus: item.status });
+              setMenuVisible(null);
+              // Handle suspend/activate
+            }}
+            title={item.status === 'active' ? 'Suspend' : 'Activate'}
+          />
+          <Menu.Item
+            onPress={() => {
+              Logger.debug(LOG_SOURCE, 'Deleting user', { userId: item.id });
+              setMenuVisible(null);
+              // Handle delete
+            }}
+            title="Delete"
+            titleStyle={{ color: theme.colors.error }}
+          />
+        </Menu>
+      </View>
+    </View>
   );
 
   if (error) {
     return (
       <ErrorState
         message={error}
-        onRetry={() => dispatch(fetchUsers())}
+        onRetry={() => {
+          Logger.info(LOG_SOURCE, 'Retrying fetch users');
+          dispatch(fetchUsers());
+        }}
       />
     );
   }
@@ -126,7 +164,10 @@ export const UsersListScreen: React.FC = () => {
         placeholder="Search users..."
         onChangeText={setSearchQuery}
         value={searchQuery}
-        style={styles.searchbar}
+        style={[styles.searchbar, { backgroundColor: theme.colors.surface }]}
+        inputStyle={{ color: theme.colors.text }}
+        iconColor={theme.colors.textSecondary}
+        placeholderTextColor={theme.colors.textSecondary}
       />
 
       {isLoading ? (
@@ -141,6 +182,7 @@ export const UsersListScreen: React.FC = () => {
           renderItem={renderUser}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
         />
       )}
 
@@ -148,7 +190,10 @@ export const UsersListScreen: React.FC = () => {
         <FAB
           icon="plus"
           style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          onPress={() => navigation.navigate('CreateUser' as never)}
+          onPress={() => {
+            Logger.debug(LOG_SOURCE, 'Navigating to create user');
+            navigation.navigate('CreateUser' as never);
+          }}
         />
       )}
     </View>
@@ -161,12 +206,18 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     margin: 16,
+    borderRadius: 12,
+    elevation: 0,
   },
   list: {
     padding: 16,
+    paddingTop: 0,
   },
-  card: {
+  userCard: {
+    padding: 16,
     marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   userHeader: {
     flexDirection: 'row',
@@ -182,7 +233,11 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   chip: {
-    height: 20,
+    height: 35,
+    justifyContent: 'center',
+  },
+  menuButton: {
+    padding: 4,
   },
   loadingContainer: {
     padding: 16,
@@ -192,6 +247,6 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+    borderRadius: 28,
   },
 });
-

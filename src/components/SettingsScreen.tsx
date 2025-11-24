@@ -1,12 +1,16 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
-import { Card, Button, Switch, List } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import { Button, Switch } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../hooks';
 import { signOut, setBiometricEnabled } from '../store/slices/authSlice';
 import { toggleTheme } from '../store/slices/themeSlice';
 import { AuthService } from '../lib/services/authService';
 import { useTheme } from '../hooks/useTheme';
 import { Typography } from './Typography';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logger from '../utils/logger';
+
+const LOG_SOURCE = 'SettingsScreen';
 
 export const SettingsScreen: React.FC = () => {
   const dispatch = useAppDispatch();
@@ -16,9 +20,13 @@ export const SettingsScreen: React.FC = () => {
 
   const handleToggleBiometric = async () => {
     if (!user) return;
+    
+    Logger.info(LOG_SOURCE, 'Toggling biometric', { userId: user.id, currentState: biometricEnabled });
+    
     if (!biometricEnabled) {
       const available = await AuthService.isBiometricAvailable();
       if (!available) {
+        Logger.warn(LOG_SOURCE, 'Biometric not available');
         alert('Biometric authentication is not available on this device');
         return;
       }
@@ -26,64 +34,138 @@ export const SettingsScreen: React.FC = () => {
       if (success) {
         await AuthService.enableBiometric(user.id);
         dispatch(setBiometricEnabled(true));
+        Logger.info(LOG_SOURCE, 'Biometric enabled', { userId: user.id });
       }
     } else {
       await AuthService.enableBiometric(user.id);
       dispatch(setBiometricEnabled(false));
+      Logger.info(LOG_SOURCE, 'Biometric disabled', { userId: user.id });
     }
   };
 
   const handleSignOut = () => {
+    Logger.info(LOG_SOURCE, 'Sign out initiated', { userId: user?.id });
     dispatch(signOut());
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content>
-          <Typography variant="h2" style={styles.title}>
-            Settings
-          </Typography>
+    <ScrollView 
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <Typography variant="h2" style={[styles.title, { color: theme.colors.text }]}>
+        Settings
+      </Typography>
 
-          <List.Item
-            title="Dark Mode"
-            description="Toggle dark theme"
-            right={() => (
-              <Switch value={mode === 'dark'} onValueChange={() => dispatch(toggleTheme())} />
-            )}
-          />
-
-          {(user?.role === 'super_admin' || user?.role === 'admin') && (
-            <List.Item
-              title="Biometric Authentication"
-              description="Enable biometric login"
-              right={() => (
-                <Switch value={biometricEnabled} onValueChange={handleToggleBiometric} />
-              )}
+      <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => {
+            Logger.debug(LOG_SOURCE, 'Toggling theme', { currentMode: mode });
+            dispatch(toggleTheme());
+          }}
+        >
+          <View style={styles.settingContent}>
+            <MaterialCommunityIcons
+              name={mode === 'dark' ? 'weather-night' : 'weather-sunny'}
+              size={24}
+              color={theme.colors.primary}
             />
-          )}
-
-          <List.Item
-            title="User"
-            description={user?.email}
-            left={(props) => <List.Icon {...props} icon="account" />}
+            <View style={styles.settingText}>
+              <Typography variant="body" style={{ color: theme.colors.text, fontWeight: '600' }}>
+                Dark Mode
+              </Typography>
+              <Typography variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 2 }}>
+                Toggle dark theme
+              </Typography>
+            </View>
+          </View>
+          <Switch
+            value={mode === 'dark'}
+            onValueChange={() => {
+              Logger.debug(LOG_SOURCE, 'Toggling theme', { currentMode: mode });
+              dispatch(toggleTheme());
+            }}
+            color={theme.colors.primary}
           />
+        </TouchableOpacity>
 
-          <List.Item
-            title="Role"
-            description={user?.role}
-            left={(props) => <List.Icon {...props} icon="shield-account" />}
-          />
-
-          <Button
-            mode="contained"
-            onPress={handleSignOut}
-            style={[styles.button, { backgroundColor: theme.colors.error }]}
+        {(user?.role === 'super_admin' || user?.role === 'admin') && (
+          <TouchableOpacity
+            style={[styles.settingItem, styles.settingItemBorder, { borderColor: theme.colors.border }]}
+            onPress={handleToggleBiometric}
           >
-            Sign Out
-          </Button>
-        </Card.Content>
-      </Card>
+            <View style={styles.settingContent}>
+              <MaterialCommunityIcons
+                name="fingerprint"
+                size={24}
+                color={theme.colors.primary}
+              />
+              <View style={styles.settingText}>
+                <Typography variant="body" style={{ color: theme.colors.text, fontWeight: '600' }}>
+                  Biometric Authentication
+                </Typography>
+                <Typography variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 2 }}>
+                  Enable biometric login
+                </Typography>
+              </View>
+            </View>
+            <Switch
+              value={biometricEnabled}
+              onValueChange={handleToggleBiometric}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      <View style={[styles.section, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <View style={styles.settingItem}>
+          <View style={styles.settingContent}>
+            <MaterialCommunityIcons
+              name="account"
+              size={24}
+              color={theme.colors.textSecondary}
+            />
+            <View style={styles.settingText}>
+              <Typography variant="body" style={{ color: theme.colors.text, fontWeight: '600' }}>
+                User
+              </Typography>
+              <Typography variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 2 }}>
+                {user?.email}
+              </Typography>
+            </View>
+          </View>
+        </View>
+
+        <View style={[styles.settingItem, styles.settingItemBorder, { borderColor: theme.colors.border }]}>
+          <View style={styles.settingContent}>
+            <MaterialCommunityIcons
+              name="shield-account"
+              size={24}
+              color={theme.colors.textSecondary}
+            />
+            <View style={styles.settingText}>
+              <Typography variant="body" style={{ color: theme.colors.text, fontWeight: '600' }}>
+                Role
+              </Typography>
+              <Typography variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 2 }}>
+                {user?.role?.replace('_', ' ')}
+              </Typography>
+            </View>
+          </View>
+        </View>
+      </View>
+
+      <Button
+        mode="contained"
+        onPress={handleSignOut}
+        style={[styles.button, { backgroundColor: theme.colors.error }]}
+        contentStyle={styles.buttonContent}
+        labelStyle={{ color: '#fff', fontWeight: '600' }}
+      >
+        Sign Out
+      </Button>
     </ScrollView>
   );
 };
@@ -92,14 +174,43 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  card: {
-    margin: 16,
+  content: {
+    padding: 24,
   },
   title: {
+    marginBottom: 32,
+    fontWeight: '700',
+  },
+  section: {
+    borderRadius: 12,
+    borderWidth: 1,
     marginBottom: 24,
+    overflow: 'hidden',
+  },
+  settingItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    padding: 16,
+  },
+  settingItemBorder: {
+    borderTopWidth: 1,
+  },
+  settingContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  settingText: {
+    marginLeft: 12,
+    flex: 1,
   },
   button: {
-    marginTop: 24,
+    marginTop: 8,
+    borderRadius: 12,
+    elevation: 0,
+  },
+  buttonContent: {
+    paddingVertical: 8,
   },
 });
-

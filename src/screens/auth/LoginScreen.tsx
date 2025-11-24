@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
-import { TextInput, Button, Card } from 'react-native-paper';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, TouchableOpacity } from 'react-native';
+import { TextInput, Button } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { signIn } from '../../store/slices/authSlice';
 import { AuthService } from '../../lib/services/authService';
 import { useTheme } from '../../hooks/useTheme';
 import { Typography } from '../../components/Typography';
-import { ErrorState } from '../../components/ErrorState';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 
 export const LoginScreen: React.FC = () => {
   const [email, setEmail] = useState('');
@@ -45,41 +45,69 @@ export const LoginScreen: React.FC = () => {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, { backgroundColor: theme.colors.background }]}
     >
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <Typography variant="h1" style={styles.title}>
+      <ScrollView 
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+      >
+        <View style={styles.content}>
+          <View style={styles.header}>
+            <Typography variant="h1" style={[styles.title, { color: theme.colors.text }]}>
               Court Management
             </Typography>
             <Typography variant="body" style={[styles.subtitle, { color: theme.colors.textSecondary }]}>
               Sign in to continue
             </Typography>
+          </View>
 
-            {error && <ErrorState message={error} style={styles.error} />}
+          {error && (
+            <View style={[styles.errorContainer, { backgroundColor: theme.colors.error + '15' }]}>
+              <MaterialCommunityIcons 
+                name="alert-circle" 
+                size={20} 
+                color={theme.colors.error} 
+                style={styles.errorIcon}
+              />
+              <Typography variant="caption" style={{ color: theme.colors.error, flex: 1 }}>
+                {error}
+              </Typography>
+            </View>
+          )}
 
+          <View style={styles.form}>
             <TextInput
               label="Email"
               value={email}
               onChangeText={setEmail}
-              mode="outlined"
+              mode="flat"
               keyboardType="email-address"
               autoCapitalize="none"
-              style={styles.input}
+              autoCorrect={false}
+              style={[styles.input, { backgroundColor: theme.colors.surface }]}
+              contentStyle={{ backgroundColor: theme.colors.surface }}
+              underlineColor={theme.colors.border}
+              activeUnderlineColor={theme.colors.primary}
+              textColor={theme.colors.text}
             />
 
             <TextInput
               label="Password"
               value={password}
               onChangeText={setPassword}
-              mode="outlined"
+              mode="flat"
               secureTextEntry={!showPassword}
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[styles.input, { backgroundColor: theme.colors.surface }]}
+              contentStyle={{ backgroundColor: theme.colors.surface }}
+              underlineColor={theme.colors.border}
+              activeUnderlineColor={theme.colors.primary}
+              textColor={theme.colors.text}
               right={
                 <TextInput.Icon
                   icon={showPassword ? 'eye-off' : 'eye'}
                   onPress={() => setShowPassword(!showPassword)}
                 />
               }
-              style={styles.input}
             />
 
             <Button
@@ -87,23 +115,30 @@ export const LoginScreen: React.FC = () => {
               onPress={handleLogin}
               loading={isLoading}
               disabled={isLoading || !email || !password}
-              style={styles.button}
+              style={[styles.button, { backgroundColor: theme.colors.primary }]}
+              contentStyle={styles.buttonContent}
+              labelStyle={{ color: '#fff', fontWeight: '600' }}
             >
               Sign In
             </Button>
 
             {isBiometricAvailable && (
-              <Button
-                mode="outlined"
+              <TouchableOpacity
                 onPress={handleBiometricLogin}
-                icon="fingerprint"
-                style={styles.button}
+                style={[styles.biometricButton, { borderColor: theme.colors.border }]}
               >
-                Use Biometric
-              </Button>
+                <MaterialCommunityIcons 
+                  name="fingerprint" 
+                  size={24} 
+                  color={theme.colors.primary} 
+                />
+                <Typography variant="body" style={{ color: theme.colors.primary, marginLeft: 8 }}>
+                  Use Biometric
+                </Typography>
+              </TouchableOpacity>
             )}
-          </Card.Content>
-        </Card>
+          </View>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -115,28 +150,56 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    justifyContent: 'center',
-    padding: 16,
   },
-  card: {
-    padding: 8,
+  content: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 48,
+  },
+  header: {
+    alignItems: 'center',
+    marginBottom: 48,
   },
   title: {
-    textAlign: 'center',
     marginBottom: 8,
+    fontWeight: '700',
   },
   subtitle: {
-    textAlign: 'center',
-    marginBottom: 24,
+    fontSize: 16,
+  },
+  form: {
+    width: '100%',
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 20,
+    fontSize: 16,
   },
   button: {
     marginTop: 8,
+    borderRadius: 12,
+    elevation: 0,
   },
-  error: {
-    marginBottom: 16,
+  buttonContent: {
+    paddingVertical: 8,
+  },
+  biometricButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 16,
+    paddingVertical: 14,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 24,
+  },
+  errorIcon: {
+    marginRight: 8,
   },
 });
-

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { View, StyleSheet, ScrollView, FlatList } from 'react-native';
-import { Card, Button, Chip, FAB } from 'react-native-paper';
+import { View, StyleSheet, ScrollView, FlatList, TouchableOpacity } from 'react-native';
+import { Button, Chip, FAB } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { fetchDocumentsByCase } from '../../store/slices/documentsSlice';
 import { CaseService } from '../../lib/services/caseService';
@@ -11,6 +11,10 @@ import { EmptyState } from '../../components/EmptyState';
 import { Document } from '../../types';
 import { useRoute, useNavigation } from '@react-navigation/native';
 import { canDeleteDocuments } from '../../utils/permissions';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Logger from '../../utils/logger';
+
+const LOG_SOURCE = 'CaseDetailScreen';
 
 export const CaseDetailScreen: React.FC = () => {
   const route = useRoute();
@@ -24,41 +28,80 @@ export const CaseDetailScreen: React.FC = () => {
   const theme = useTheme();
 
   useEffect(() => {
+    Logger.info(LOG_SOURCE, 'Case detail screen mounted', { caseId });
     loadCase();
     dispatch(fetchDocumentsByCase(caseId));
   }, [caseId, dispatch]);
 
   const loadCase = async () => {
+    Logger.debug(LOG_SOURCE, 'Loading case data', { caseId });
     setLoading(true);
-    const { data } = await CaseService.getCaseById(caseId);
-    setCaseData(data);
-    setLoading(false);
+    try {
+      const { data, error } = await CaseService.getCaseById(caseId);
+      if (error) {
+        Logger.error(LOG_SOURCE, 'Error loading case', { error: error.message, caseId });
+      }
+      setCaseData(data);
+    } catch (error) {
+      Logger.error(LOG_SOURCE, 'Exception loading case', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const renderDocument = ({ item }: { item: Document }) => (
-    <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-      <Card.Content>
-        <Typography variant="body">{item.filename}</Typography>
-        <Typography variant="caption" style={{ color: theme.colors.textSecondary }}>
-          {new Date(item.created_at).toLocaleDateString()}
-        </Typography>
-      </Card.Content>
-      <Card.Actions>
-        <Button onPress={() => navigation.navigate('ViewDocument' as never, { documentId: item.id } as never)}>
-          View
-        </Button>
-        {canDeleteDocuments(user?.role || null) && (
-          <Button
+    <TouchableOpacity
+      activeOpacity={0.7}
+      style={[styles.documentCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}
+    >
+      <View style={styles.documentContent}>
+        <View style={styles.documentInfo}>
+          <MaterialCommunityIcons
+            name="file-document"
+            size={24}
+            color={theme.colors.primary}
+          />
+          <View style={styles.documentText}>
+            <Typography variant="body" style={{ color: theme.colors.text, fontWeight: '600' }}>
+              {item.filename}
+            </Typography>
+            <Typography variant="caption" style={{ color: theme.colors.textSecondary, marginTop: 4 }}>
+              {new Date(item.created_at).toLocaleDateString()}
+            </Typography>
+          </View>
+        </View>
+        <View style={styles.documentActions}>
+          <TouchableOpacity
             onPress={() => {
-              // Handle delete
+              Logger.debug(LOG_SOURCE, 'Viewing document', { documentId: item.id });
+              navigation.navigate('ViewDocument' as never, { documentId: item.id } as never);
             }}
-            textColor={theme.colors.error}
+            style={styles.actionButton}
           >
-            Delete
-          </Button>
-        )}
-      </Card.Actions>
-    </Card>
+            <MaterialCommunityIcons
+              name="eye"
+              size={20}
+              color={theme.colors.primary}
+            />
+          </TouchableOpacity>
+          {canDeleteDocuments(user?.role || null) && (
+            <TouchableOpacity
+              onPress={() => {
+                Logger.debug(LOG_SOURCE, 'Deleting document', { documentId: item.id });
+                // Handle delete
+              }}
+              style={styles.actionButton}
+            >
+              <MaterialCommunityIcons
+                name="delete"
+                size={20}
+                color={theme.colors.error}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
+      </View>
+    </TouchableOpacity>
   );
 
   if (loading) {
@@ -79,40 +122,52 @@ export const CaseDetailScreen: React.FC = () => {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <ScrollView>
-        <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-          <Card.Content>
-            <View style={styles.header}>
-              <Typography variant="h2">{caseData.case_number}</Typography>
-              <Chip
-                style={[
-                  styles.chip,
-                  {
-                    backgroundColor:
-                      caseData.status === 'open'
-                        ? theme.colors.success
-                        : caseData.status === 'closed'
-                        ? theme.colors.error
-                        : theme.colors.warning,
-                  },
-                ]}
-                textStyle={{ color: '#fff' }}
-              >
-                {caseData.status}
-              </Chip>
-            </View>
-            <Typography variant="h3" style={{ marginTop: 16 }}>
-              {caseData.title}
-            </Typography>
-            {caseData.description && (
-              <Typography variant="body" style={{ marginTop: 8, color: theme.colors.textSecondary }}>
-                {caseData.description}
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={[styles.caseCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+          <View style={styles.caseHeader}>
+            <View style={styles.caseInfo}>
+              <Typography variant="h2" style={{ color: theme.colors.text, fontWeight: '700' }}>
+                {caseData.case_number}
               </Typography>
-            )}
-          </Card.Content>
-        </Card>
+              <Typography variant="h3" style={{ marginTop: 8, color: theme.colors.text }}>
+                {caseData.title}
+              </Typography>
+              {caseData.description && (
+                <Typography variant="body" style={{ marginTop: 12, color: theme.colors.textSecondary }}>
+                  {caseData.description}
+                </Typography>
+              )}
+            </View>
+            <Chip
+              mode="flat"
+              style={[
+                styles.chip,
+                {
+                  backgroundColor:
+                    caseData.status === 'open'
+                      ? theme.colors.success + '20'
+                      : caseData.status === 'closed'
+                      ? theme.colors.error + '20'
+                      : theme.colors.warning + '20',
+                },
+              ]}
+              textStyle={{
+                color:
+                  caseData.status === 'open'
+                    ? theme.colors.success
+                    : caseData.status === 'closed'
+                    ? theme.colors.error
+                    : theme.colors.warning,
+                fontSize: 12,
+                fontWeight: '600',
+              }}
+            >
+              {caseData.status}
+            </Chip>
+          </View>
+        </View>
 
-        <Typography variant="h3" style={{ margin: 16 }}>
+        <Typography variant="h3" style={[styles.sectionTitle, { color: theme.colors.text }]}>
           Documents
         </Typography>
 
@@ -126,7 +181,7 @@ export const CaseDetailScreen: React.FC = () => {
             renderItem={renderDocument}
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
-            contentContainerStyle={styles.list}
+            contentContainerStyle={styles.documentsList}
           />
         )}
       </ScrollView>
@@ -134,7 +189,10 @@ export const CaseDetailScreen: React.FC = () => {
       <FAB
         icon="upload"
         style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-        onPress={() => navigation.navigate('UploadDocument' as never, { caseId } as never)}
+        onPress={() => {
+          Logger.debug(LOG_SOURCE, 'Navigating to upload document', { caseId });
+          navigation.navigate('UploadDocument' as never, { caseId } as never);
+        }}
       />
     </View>
   );
@@ -144,25 +202,66 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  card: {
-    margin: 16,
+  scrollContent: {
+    padding: 16,
   },
-  header: {
+  caseCard: {
+    padding: 20,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 24,
+  },
+  caseHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+  },
+  caseInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  chip: {
+    height: 28,
+  },
+  sectionTitle: {
+    marginBottom: 16,
+    fontWeight: '700',
+  },
+  documentsList: {
+    paddingBottom: 16,
+  },
+  documentCard: {
+    padding: 16,
+    marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+  },
+  documentContent: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
   },
-  chip: {
-    height: 24,
+  documentInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
   },
-  list: {
-    paddingHorizontal: 16,
+  documentText: {
+    marginLeft: 12,
+    flex: 1,
+  },
+  documentActions: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  actionButton: {
+    padding: 8,
   },
   fab: {
     position: 'absolute',
     margin: 16,
     right: 0,
     bottom: 0,
+    borderRadius: 28,
   },
 });
-

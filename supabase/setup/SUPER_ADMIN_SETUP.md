@@ -11,7 +11,7 @@ Since Super Admin accounts cannot sign up through the app (they must be created 
 3. Go to **Authentication** → **Users**
 4. Click **"Add user"** or **"Create new user"**
 5. Fill in:
-   - **Email**: e.g., `superadmin@court.com`
+   - **Email**: e.g., `redsparks184@gmail.com`
    - **Password**: Choose a strong password (you'll need this to login)
    - **Auto Confirm User**: ✅ Check this box (so they can login immediately)
 6. Click **"Create user"**
@@ -26,7 +26,7 @@ Since Super Admin accounts cannot sign up through the app (they must be created 
 
 **Option A: Using Table Editor (UI)**
 - `id`: Paste the User ID from Step 1
-- `email`: `superadmin@court.com` (same as Step 1)
+- `email`: `redsparks184@gmail.com` (same as Step 1)
 - `role`: `super_admin`
 - `status`: `active`
 - `biometric_enabled`: `false` (will be enabled after first login)
@@ -44,7 +44,7 @@ INSERT INTO public.users (
   updated_at
 ) VALUES (
   'PASTE_USER_ID_FROM_STEP_1',  -- Replace with actual UUID
-  'superadmin@court.com',
+  'redsparks184@gmail.com',
   'super_admin',
   'active',
   false,
@@ -57,7 +57,7 @@ INSERT INTO public.users (
 
 1. Open the app on your device/emulator
 2. Enter the credentials:
-   - **Email**: `superadmin@court.com`
+   - **Email**: `redsparks184@gmail.com`
    - **Password**: (the password you set in Step 1)
 3. Click **"Sign In"**
 
@@ -117,7 +117,7 @@ INSERT INTO public.users (
   biometric_enabled
 ) VALUES (
   'YOUR_AUTH_USER_ID',  -- Get this from Authentication → Users
-  'superadmin@court.com',
+  'redsparks184@gmail.com',
   'super_admin',
   'active',
   false

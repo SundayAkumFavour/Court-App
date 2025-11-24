@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView } from 'react-native';
-import { TextInput, Button, Card, SegmentedButtons } from 'react-native-paper';
+import { TextInput, Button, SegmentedButtons } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { createUser } from '../../store/slices/usersSlice';
 import { supabase } from '../../lib/supabase';
@@ -10,12 +10,16 @@ import { Typography } from '../../components/Typography';
 import { useNavigation } from '@react-navigation/native';
 import { UserRole } from '../../types';
 import { canCreateAdmins } from '../../utils/permissions';
+import Logger from '../../utils/logger';
+
+const LOG_SOURCE = 'CreateUserScreen';
 
 export const CreateUserScreen: React.FC = () => {
   const [email, setEmail] = useState('');
   const [role, setRole] = useState<UserRole>('staff');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
   const dispatch = useAppDispatch();
   const { user } = useAppSelector((state) => state.auth);
   const theme = useTheme();
@@ -26,48 +30,75 @@ export const CreateUserScreen: React.FC = () => {
   const handleCreate = async () => {
     if (!email || !user) return;
 
-    // Generate password if not provided
-    const userPassword = password || UserService.generatePassword();
+    Logger.info(LOG_SOURCE, 'Creating new user', { email, role });
+    setLoading(true);
 
-    // Create auth user
-    const { data: authData, error: authError } = await supabase.auth.admin.createUser({
-      email,
-      password: userPassword,
-      email_confirm: true,
-    });
+    try {
+      // Generate password if not provided
+      const userPassword = password || UserService.generatePassword();
 
-    if (authError || !authData.user) {
-      // Handle error
-      return;
+      Logger.debug(LOG_SOURCE, 'Creating auth user', { email });
+
+      // Create auth user
+      const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        email,
+        password: userPassword,
+        email_confirm: true,
+      });
+
+      if (authError || !authData.user) {
+        Logger.error(LOG_SOURCE, 'Error creating auth user', { error: authError?.message, email });
+        // Handle error - show alert or toast
+        return;
+      }
+
+      Logger.info(LOG_SOURCE, 'Auth user created', { userId: authData.user.id, email });
+
+      // Create user record
+      await dispatch(createUser({ userId: authData.user.id, email, role, createdBy: user.id }));
+
+      Logger.info(LOG_SOURCE, 'User created successfully', { email, role });
+
+      // Show password to user (in production, send via email/SMS)
+      alert(`User created. Password: ${userPassword}`);
+
+      navigation.goBack();
+    } catch (error) {
+      Logger.error(LOG_SOURCE, 'Exception creating user', error);
+    } finally {
+      setLoading(false);
     }
-
-    // Create user record
-    await dispatch(createUser({ userId: authData.user.id, email, role, createdBy: user.id }));
-
-    // Show password to user (in production, send via email/SMS)
-    alert(`User created. Password: ${userPassword}`);
-
-    navigation.goBack();
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.colors.background }]}>
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content>
-          <Typography variant="h2" style={styles.title}>
-            Create New User
+    <ScrollView 
+      style={[styles.container, { backgroundColor: theme.colors.background }]}
+      contentContainerStyle={styles.content}
+    >
+      <View style={styles.form}>
+        <Typography variant="h2" style={[styles.title, { color: theme.colors.text }]}>
+          Create New User
+        </Typography>
+
+        <TextInput
+          label="Email *"
+          value={email}
+          onChangeText={setEmail}
+          mode="flat"
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[styles.input, { backgroundColor: theme.colors.surface }]}
+          contentStyle={{ backgroundColor: theme.colors.surface }}
+          underlineColor={theme.colors.border}
+          activeUnderlineColor={theme.colors.primary}
+          textColor={theme.colors.text}
+        />
+
+        <View style={styles.section}>
+          <Typography variant="body" style={[styles.label, { color: theme.colors.text }]}>
+            Role
           </Typography>
-
-          <TextInput
-            label="Email *"
-            value={email}
-            onChangeText={setEmail}
-            mode="outlined"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            style={styles.input}
-          />
-
           <SegmentedButtons
             value={role}
             onValueChange={(value) => setRole(value as UserRole)}
@@ -75,34 +106,44 @@ export const CreateUserScreen: React.FC = () => {
               { value: 'staff', label: 'Staff' },
               ...(canCreateAdmin ? [{ value: 'admin', label: 'Admin' }] : []),
             ]}
-            style={styles.input}
+            style={styles.segmentedButtons}
           />
+        </View>
 
-          <TextInput
-            label="Password (leave empty to generate)"
-            value={password}
-            onChangeText={setPassword}
-            mode="outlined"
-            secureTextEntry={!showPassword}
-            right={
-              <TextInput.Icon
-                icon={showPassword ? 'eye-off' : 'eye'}
-                onPress={() => setShowPassword(!showPassword)}
-              />
-            }
-            style={styles.input}
-          />
+        <TextInput
+          label="Password (leave empty to generate)"
+          value={password}
+          onChangeText={setPassword}
+          mode="flat"
+          secureTextEntry={!showPassword}
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={[styles.input, { backgroundColor: theme.colors.surface }]}
+          contentStyle={{ backgroundColor: theme.colors.surface }}
+          underlineColor={theme.colors.border}
+          activeUnderlineColor={theme.colors.primary}
+          textColor={theme.colors.text}
+          right={
+            <TextInput.Icon
+              icon={showPassword ? 'eye-off' : 'eye'}
+              onPress={() => setShowPassword(!showPassword)}
+              iconColor={theme.colors.textSecondary}
+            />
+          }
+        />
 
-          <Button
-            mode="contained"
-            onPress={handleCreate}
-            disabled={!email}
-            style={styles.button}
-          >
-            Create User
-          </Button>
-        </Card.Content>
-      </Card>
+        <Button
+          mode="contained"
+          onPress={handleCreate}
+          loading={loading}
+          disabled={loading || !email}
+          style={[styles.button, { backgroundColor: theme.colors.primary }]}
+          contentStyle={styles.buttonContent}
+          labelStyle={{ color: '#fff', fontWeight: '600' }}
+        >
+          Create User
+        </Button>
+      </View>
     </ScrollView>
   );
 };
@@ -111,17 +152,36 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  card: {
-    margin: 16,
+  content: {
+    padding: 24,
+  },
+  form: {
+    width: '100%',
   },
   title: {
-    marginBottom: 24,
+    marginBottom: 32,
+    fontWeight: '700',
   },
   input: {
-    marginBottom: 16,
+    marginBottom: 24,
+  },
+  section: {
+    marginBottom: 24,
+  },
+  label: {
+    marginBottom: 12,
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  segmentedButtons: {
+    marginTop: 4,
   },
   button: {
     marginTop: 8,
+    borderRadius: 12,
+    elevation: 0,
+  },
+  buttonContent: {
+    paddingVertical: 8,
   },
 });
-

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity } from 'react-native';
-import { Card, Searchbar, FAB, Chip } from 'react-native-paper';
+import { Searchbar, FAB, Chip } from 'react-native-paper';
 import { useAppDispatch, useAppSelector } from '../../hooks';
 import { fetchCases, searchCases } from '../../store/slices/casesSlice';
 import { useTheme } from '../../hooks/useTheme';
@@ -10,6 +10,9 @@ import { EmptyState } from '../../components/EmptyState';
 import { ErrorState } from '../../components/ErrorState';
 import { Case } from '../../types';
 import { useNavigation } from '@react-navigation/native';
+import Logger from '../../utils/logger';
+
+const LOG_SOURCE = 'CasesListScreen';
 
 export const CasesListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -20,11 +23,13 @@ export const CasesListScreen: React.FC = () => {
   const navigation = useNavigation();
 
   useEffect(() => {
+    Logger.info(LOG_SOURCE, 'Cases list screen mounted');
     dispatch(fetchCases());
   }, [dispatch]);
 
   useEffect(() => {
     if (searchQuery) {
+      Logger.debug(LOG_SOURCE, 'Searching cases', { query: searchQuery });
       dispatch(searchCases(searchQuery));
     } else {
       dispatch(fetchCases());
@@ -35,39 +40,55 @@ export const CasesListScreen: React.FC = () => {
 
   const renderCase = ({ item }: { item: Case }) => (
     <TouchableOpacity
-      onPress={() => navigation.navigate('CaseDetail' as never, { caseId: item.id } as never)}
+      onPress={() => {
+        Logger.debug(LOG_SOURCE, 'Navigating to case detail', { caseId: item.id });
+        navigation.navigate('CaseDetail' as never, { caseId: item.id } as never);
+      }}
+      activeOpacity={0.7}
     >
-      <Card style={[styles.card, { backgroundColor: theme.colors.surface }]}>
-        <Card.Content>
-          <View style={styles.caseHeader}>
-            <Typography variant="h3">{item.case_number}</Typography>
-            <Chip
-              style={[
-                styles.chip,
-                {
-                  backgroundColor:
-                    item.status === 'open'
-                      ? theme.colors.success
-                      : item.status === 'closed'
-                      ? theme.colors.error
-                      : theme.colors.warning,
-                },
-              ]}
-              textStyle={{ color: '#fff' }}
-            >
-              {item.status}
-            </Chip>
-          </View>
-          <Typography variant="body" style={{ marginTop: 8 }}>
-            {item.title}
-          </Typography>
-          {item.description && (
-            <Typography variant="caption" style={{ marginTop: 4, color: theme.colors.textSecondary }}>
-              {item.description.substring(0, 100)}...
+      <View style={[styles.caseCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+        <View style={styles.caseHeader}>
+          <View style={styles.caseInfo}>
+            <Typography variant="h3" style={{ color: theme.colors.text, fontWeight: '700' }}>
+              {item.case_number}
             </Typography>
-          )}
-        </Card.Content>
-      </Card>
+            <Typography variant="body" style={{ marginTop: 4, color: theme.colors.text }}>
+              {item.title}
+            </Typography>
+            {item.description && (
+              <Typography variant="caption" style={{ marginTop: 4, color: theme.colors.textSecondary }}>
+                {item.description.substring(0, 100)}...
+              </Typography>
+            )}
+          </View>
+          <Chip
+            mode="flat"
+            style={[
+              styles.chip,
+              {
+                backgroundColor:
+                  item.status === 'open'
+                    ? theme.colors.success + '20'
+                    : item.status === 'closed'
+                    ? theme.colors.error + '20'
+                    : theme.colors.warning + '20',
+              },
+            ]}
+            textStyle={{
+              color:
+                item.status === 'open'
+                  ? theme.colors.success
+                  : item.status === 'closed'
+                  ? theme.colors.error
+                  : theme.colors.warning,
+              fontSize: 11,
+              fontWeight: '600',
+            }}
+          >
+            {item.status}
+          </Chip>
+        </View>
+      </View>
     </TouchableOpacity>
   );
 
@@ -75,7 +96,10 @@ export const CasesListScreen: React.FC = () => {
     return (
       <ErrorState
         message={error}
-        onRetry={() => dispatch(fetchCases())}
+        onRetry={() => {
+          Logger.info(LOG_SOURCE, 'Retrying fetch cases');
+          dispatch(fetchCases());
+        }}
       />
     );
   }
@@ -86,7 +110,10 @@ export const CasesListScreen: React.FC = () => {
         placeholder="Search cases..."
         onChangeText={setSearchQuery}
         value={searchQuery}
-        style={styles.searchbar}
+        style={[styles.searchbar, { backgroundColor: theme.colors.surface }]}
+        inputStyle={{ color: theme.colors.text }}
+        iconColor={theme.colors.textSecondary}
+        placeholderTextColor={theme.colors.textSecondary}
       />
 
       {isLoading ? (
@@ -101,6 +128,7 @@ export const CasesListScreen: React.FC = () => {
           renderItem={renderCase}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
         />
       )}
 
@@ -108,7 +136,10 @@ export const CasesListScreen: React.FC = () => {
         <FAB
           icon="plus"
           style={[styles.fab, { backgroundColor: theme.colors.primary }]}
-          onPress={() => navigation.navigate('CreateCase' as never)}
+          onPress={() => {
+            Logger.debug(LOG_SOURCE, 'Navigating to create case');
+            navigation.navigate('CreateCase' as never);
+          }}
         />
       )}
     </View>
@@ -121,17 +152,27 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     margin: 16,
+    borderRadius: 12,
+    elevation: 0,
   },
   list: {
     padding: 16,
+    paddingTop: 0,
   },
-  card: {
+  caseCard: {
+    padding: 16,
     marginBottom: 12,
+    borderRadius: 12,
+    borderWidth: 1,
   },
   caseHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
+    alignItems: 'flex-start',
+  },
+  caseInfo: {
+    flex: 1,
+    marginRight: 12,
   },
   chip: {
     height: 24,
@@ -144,6 +185,6 @@ const styles = StyleSheet.create({
     margin: 16,
     right: 0,
     bottom: 0,
+    borderRadius: 28,
   },
 });
-

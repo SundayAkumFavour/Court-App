@@ -224,14 +224,21 @@ export class AuthService {
         return null;
       }
 
+      // Transform user to handle schema differences (is_active vs status)
+      const transformedUser = {
+        ...data,
+        status: data.status || (data.is_active ? 'active' : 'deactivated'),
+        biometric_enabled: data.biometric_enabled ?? false,
+      } as User;
+
       Logger.info(LOG_SOURCE, 'Current user retrieved', {
-        userId: data.id,
-        email: data.email,
-        role: data.role,
-        status: data.status,
+        userId: transformedUser.id,
+        email: transformedUser.email,
+        role: transformedUser.role,
+        status: transformedUser.status,
       });
 
-      return data as User;
+      return transformedUser;
     } catch (error) {
       Logger.error(LOG_SOURCE, 'Exception getting current user', error);
       return null;

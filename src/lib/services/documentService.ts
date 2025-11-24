@@ -2,10 +2,14 @@ import { supabase } from '../supabase';
 import { Document } from '../../types';
 import * as FileSystem from 'expo-file-system';
 import * as DocumentPicker from 'expo-document-picker';
+import Logger from '../../utils/logger';
+
+const LOG_SOURCE = 'DocumentService';
 
 export class DocumentService {
   // Get documents for a case
   static async getDocumentsByCase(caseId: string): Promise<{ data: Document[] | null; error: Error | null }> {
+    Logger.info(LOG_SOURCE, 'Fetching documents for case', { caseId });
     try {
       const { data, error } = await supabase
         .from('documents')
@@ -13,9 +17,15 @@ export class DocumentService {
         .eq('case_id', caseId)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(LOG_SOURCE, 'Error fetching documents', { error: error.message, caseId });
+        throw error;
+      }
+
+      Logger.info(LOG_SOURCE, 'Documents fetched successfully', { caseId, count: data?.length || 0 });
       return { data: data as Document[], error: null };
     } catch (error: any) {
+      Logger.error(LOG_SOURCE, 'Exception fetching documents', error);
       return { data: null, error: error as Error };
     }
   }
@@ -44,9 +54,15 @@ export class DocumentService {
         .eq('id', id)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(LOG_SOURCE, 'Error fetching document', { error: error.message, documentId: id });
+        throw error;
+      }
+
+      Logger.info(LOG_SOURCE, 'Document fetched successfully', { documentId: id, filename: data?.filename });
       return { data: data as Document, error: null };
     } catch (error: any) {
+      Logger.error(LOG_SOURCE, 'Exception fetching document', error);
       return { data: null, error: error as Error };
     }
   }
@@ -58,6 +74,7 @@ export class DocumentService {
     filename: string,
     uploadedBy: string
   ): Promise<{ data: Document | null; error: Error | null }> {
+    Logger.info(LOG_SOURCE, 'Uploading document', { caseId, filename, uploadedBy });
     try {
       // Read file
       const fileInfo = await FileSystem.getInfoAsync(fileUri);
@@ -82,7 +99,12 @@ export class DocumentService {
           upsert: false,
         });
 
-      if (uploadError) throw uploadError;
+      if (uploadError) {
+        Logger.error(LOG_SOURCE, 'Error uploading to storage', { error: uploadError.message, caseId, filename });
+        throw uploadError;
+      }
+
+      Logger.debug(LOG_SOURCE, 'File uploaded to storage', { filePath, caseId });
 
       // Get public URL
       const { data: urlData } = supabase.storage
@@ -103,15 +125,22 @@ export class DocumentService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(LOG_SOURCE, 'Error creating document record', { error: error.message, caseId, filename });
+        throw error;
+      }
+
+      Logger.info(LOG_SOURCE, 'Document uploaded successfully', { documentId: data.id, caseId, filename });
       return { data: data as Document, error: null };
     } catch (error: any) {
+      Logger.error(LOG_SOURCE, 'Exception uploading document', error);
       return { data: null, error: error as Error };
     }
   }
 
   // Pick document from device
   static async pickDocument(): Promise<{ uri: string | null; name: string | null; error: Error | null }> {
+    Logger.info(LOG_SOURCE, 'Picking document from device');
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: ['application/pdf', 'image/*', 'application/msword', 'application/vnd.openxmlformats-officedocument.*', 'text/plain'],
@@ -119,15 +148,18 @@ export class DocumentService {
       });
 
       if (result.canceled) {
+        Logger.debug(LOG_SOURCE, 'Document picker canceled');
         return { uri: null, name: null, error: null };
       }
 
+      Logger.info(LOG_SOURCE, 'Document picked successfully', { filename: result.assets[0].name });
       return {
         uri: result.assets[0].uri,
         name: result.assets[0].name,
         error: null,
       };
     } catch (error: any) {
+      Logger.error(LOG_SOURCE, 'Exception picking document', error);
       return { uri: null, name: null, error: error as Error };
     }
   }
@@ -137,6 +169,7 @@ export class DocumentService {
     id: string,
     updates: Partial<Pick<Document, 'filename'>>
   ): Promise<{ data: Document | null; error: Error | null }> {
+    Logger.info(LOG_SOURCE, 'Updating document', { documentId: id, updates });
     try {
       const { data, error } = await supabase
         .from('documents')
@@ -145,22 +178,34 @@ export class DocumentService {
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(LOG_SOURCE, 'Error updating document', { error: error.message, documentId: id });
+        throw error;
+      }
+
+      Logger.info(LOG_SOURCE, 'Document updated successfully', { documentId: id });
       return { data: data as Document, error: null };
     } catch (error: any) {
+      Logger.error(LOG_SOURCE, 'Exception updating document', error);
       return { data: null, error: error as Error };
     }
   }
 
   // Delete document
   static async deleteDocument(id: string, filePath: string): Promise<{ error: Error | null }> {
+    Logger.info(LOG_SOURCE, 'Deleting document', { documentId: id, filePath });
     try {
       // Delete from storage
       const { error: storageError } = await supabase.storage
         .from('documents')
         .remove([filePath]);
 
-      if (storageError) throw storageError;
+      if (storageError) {
+        Logger.error(LOG_SOURCE, 'Error deleting from storage', { error: storageError.message, filePath });
+        throw storageError;
+      }
+
+      Logger.debug(LOG_SOURCE, 'File deleted from storage', { filePath });
 
       // Delete record
       const { error } = await supabase
@@ -168,9 +213,15 @@ export class DocumentService {
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (error) {
+        Logger.error(LOG_SOURCE, 'Error deleting document record', { error: error.message, documentId: id });
+        throw error;
+      }
+
+      Logger.info(LOG_SOURCE, 'Document deleted successfully', { documentId: id });
       return { error: null };
     } catch (error: any) {
+      Logger.error(LOG_SOURCE, 'Exception deleting document', error);
       return { error: error as Error };
     }
   }
