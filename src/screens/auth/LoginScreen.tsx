@@ -177,7 +177,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   buttonContent: {
@@ -189,7 +189,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 16,
     paddingVertical: 14,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   errorContainer: {

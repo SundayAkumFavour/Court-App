@@ -18,7 +18,7 @@ const LOG_SOURCE = 'UsersListScreen';
 
 export const UsersListScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [menuVisible, setMenuVisible] = useState<string | null>(null);
+  const [menuVisible, setMenuVisible] = useState<Record<string, boolean>>({});
   const dispatch = useAppDispatch();
   const { users, isLoading, error } = useAppSelector((state) => state.users);
   const { user } = useAppSelector((state) => state.auth);
@@ -101,11 +101,14 @@ export const UsersListScreen: React.FC = () => {
           </View>
         </View>
         <Menu
-          visible={menuVisible === item.id}
-          onDismiss={() => setMenuVisible(null)}
+          visible={menuVisible[item.id] || false}
+          onDismiss={() => setMenuVisible({ ...menuVisible, [item.id]: false })}
           anchor={
             <TouchableOpacity
-              onPress={() => setMenuVisible(item.id)}
+              onPress={() => {
+                Logger.debug(LOG_SOURCE, 'Opening menu', { userId: item.id });
+                setMenuVisible({ ...menuVisible, [item.id]: true });
+              }}
               style={styles.menuButton}
             >
               <MaterialCommunityIcons
@@ -119,15 +122,15 @@ export const UsersListScreen: React.FC = () => {
           <Menu.Item
             onPress={() => {
               Logger.debug(LOG_SOURCE, 'Editing user', { userId: item.id });
-              setMenuVisible(null);
-              navigation.navigate('EditUser' as never, { userId: item.id } as never);
+              setMenuVisible({ ...menuVisible, [item.id]: false });
+              (navigation as any).navigate('EditUser', { userId: item.id });
             }}
             title="Edit"
           />
           <Menu.Item
             onPress={() => {
               Logger.debug(LOG_SOURCE, 'Toggling user status', { userId: item.id, currentStatus: item.status });
-              setMenuVisible(null);
+              setMenuVisible({ ...menuVisible, [item.id]: false });
               // Handle suspend/activate
             }}
             title={item.status === 'active' ? 'Suspend' : 'Activate'}
@@ -135,7 +138,7 @@ export const UsersListScreen: React.FC = () => {
           <Menu.Item
             onPress={() => {
               Logger.debug(LOG_SOURCE, 'Deleting user', { userId: item.id });
-              setMenuVisible(null);
+              setMenuVisible({ ...menuVisible, [item.id]: false });
               // Handle delete
             }}
             title="Delete"
@@ -206,7 +209,7 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     margin: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   list: {
@@ -216,7 +219,7 @@ const styles = StyleSheet.create({
   userCard: {
     padding: 16,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   userHeader: {

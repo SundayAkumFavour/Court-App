@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import { UserRole } from '../../types';
 import { canCreateAdmins } from '../../utils/permissions';
 import Logger from '../../utils/logger';
+import { EmailService } from '../../lib/services/emailService';
 
 const LOG_SOURCE = 'CreateUserScreen';
 
@@ -59,8 +60,17 @@ export const CreateUserScreen: React.FC = () => {
 
       Logger.info(LOG_SOURCE, 'User created successfully', { email, role });
 
-      // Show password to user (in production, send via email/SMS)
-      alert(`User created. Password: ${userPassword}`);
+      // Try to send welcome email (optional - requires Edge Function setup)
+      const emailResult = await EmailService.sendWelcomeEmail(email, userPassword, role);
+      
+      if (emailResult.success) {
+        Logger.info(LOG_SOURCE, 'Welcome email sent', { email });
+        alert('User created successfully. Welcome email sent with credentials.');
+      } else {
+        Logger.info(LOG_SOURCE, 'Email not configured, showing password in app', { email });
+        // Show password in app (this is the default behavior)
+        alert(`User created successfully!\n\nEmail: ${email}\nPassword: ${userPassword}\nRole: ${role.replace('_', ' ')}\n\nPlease share these credentials securely with the user.`);
+      }
 
       navigation.goBack();
     } catch (error) {
@@ -178,7 +188,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   buttonContent: {
