@@ -3,16 +3,44 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web"
+    "start": "expo start --offline",
+    "start:online": "expo start",
+    "start:offline": "expo start --offline",
+    "android": "expo start --offline --android",
+    "ios": "expo start --offline --ios",
+    "web": "expo start --offline --web"
   },
   "dependencies": {
+    "@expo/vector-icons": "^15.0.3",
+    "@react-navigation/bottom-tabs": "^7.8.6",
+    "@react-navigation/native": "^7.1.21",
+    "@react-navigation/native-stack": "^7.8.0",
+    "@reduxjs/toolkit": "^2.11.0",
+    "@supabase/supabase-js": "^2.84.0",
+    "@types/react": "^19.1.17",
+    "@types/react-native": "^0.73.0",
+    "axios": "^1.13.2",
     "expo": "~54.0.25",
+    "expo-constants": "^18.0.10",
+    "expo-document-picker": "^14.0.7",
+    "expo-file-system": "^19.0.19",
+    "expo-local-authentication": "^17.0.7",
+    "expo-secure-store": "^15.0.7",
     "expo-status-bar": "~3.0.8",
+    "iconsax-react-nativejs": "^0.0.8",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-native": "0.81.5",
+    "react-native-paper": "^5.14.5",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "^4.16.0",
+    "react-native-vector-icons": "^10.3.0",
+    "react-redux": "^9.2.0"
   },
-  "private": true
+  "private": true,
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "babel-plugin-module-resolver": "^5.0.2",
+    "react-native-dotenv": "^3.4.11",
+    "typescript": "^5.9.3"
+  }
 }
