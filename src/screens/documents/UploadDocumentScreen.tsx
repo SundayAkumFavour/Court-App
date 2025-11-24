@@ -141,7 +141,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: 32,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 2,
     borderStyle: 'dashed',
     marginBottom: 24,
@@ -151,7 +151,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   buttonContent: {

@@ -17,6 +17,7 @@ export const SettingsScreen: React.FC = () => {
   const { user, biometricEnabled } = useAppSelector((state) => state.auth);
   const { mode } = useAppSelector((state) => state.theme);
   const theme = useTheme();
+  const [signingOut, setSigningOut] = React.useState(false);
 
   const handleToggleBiometric = async () => {
     if (!user) return;
@@ -43,9 +44,14 @@ export const SettingsScreen: React.FC = () => {
     }
   };
 
-  const handleSignOut = () => {
+  const handleSignOut = async () => {
     Logger.info(LOG_SOURCE, 'Sign out initiated', { userId: user?.id });
-    dispatch(signOut());
+    setSigningOut(true);
+    try {
+      await dispatch(signOut());
+    } finally {
+      setSigningOut(false);
+    }
   };
 
   return (
@@ -160,6 +166,8 @@ export const SettingsScreen: React.FC = () => {
       <Button
         mode="contained"
         onPress={handleSignOut}
+        loading={signingOut}
+        disabled={signingOut}
         style={[styles.button, { backgroundColor: theme.colors.error }]}
         contentStyle={styles.buttonContent}
         labelStyle={{ color: '#fff', fontWeight: '600' }}
@@ -182,7 +190,7 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   section: {
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 24,
     overflow: 'hidden',
@@ -207,7 +215,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   buttonContent: {

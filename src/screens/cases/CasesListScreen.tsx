@@ -152,7 +152,7 @@ const styles = StyleSheet.create({
   },
   searchbar: {
     margin: 16,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   list: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   caseCard: {
     padding: 16,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   caseHeader: {

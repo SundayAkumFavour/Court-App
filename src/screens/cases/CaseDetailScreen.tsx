@@ -207,7 +207,7 @@ const styles = StyleSheet.create({
   },
   caseCard: {
     padding: 20,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
     marginBottom: 24,
   },
@@ -233,7 +233,7 @@ const styles = StyleSheet.create({
   documentCard: {
     padding: 16,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: 16,
     borderWidth: 1,
   },
   documentContent: {

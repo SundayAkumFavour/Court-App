@@ -121,7 +121,7 @@ const styles = StyleSheet.create({
   },
   button: {
     marginTop: 8,
-    borderRadius: 12,
+    borderRadius: 16,
     elevation: 0,
   },
   buttonContent: {
